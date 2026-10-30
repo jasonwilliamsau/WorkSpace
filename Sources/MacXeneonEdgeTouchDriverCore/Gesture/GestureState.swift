@@ -34,6 +34,12 @@ public struct SingleTouchContext: Equatable {
     /// Current interpretation of the contact.
     public var phase: Phase
 
+    /// Native interaction inferred from the element under the initial contact.
+    public let interactionKind: GestureInteractionKind
+
+    /// Whether this contact should finish an already-open menu interaction.
+    public let completesMenuSession: Bool
+
     /// Click count used if this contact has emitted a mouse-down event.
     public var clickCount: Int
 }

@@ -11,7 +11,8 @@ public protocol CursorController: AnyObject {
     /// Warps the borrowed cursor to a new gesture point.
     func updatePosition(_ point: CGPoint)
 
-    /// Restores the cursor to its saved pre-touch position and shows it.
+    /// Ends the cursor borrow and shows it. The implementation may restore the
+    /// saved pre-touch position or leave the cursor at the last touch point.
     func returnToOrigin()
 
     /// Shows the cursor for recovery paths.

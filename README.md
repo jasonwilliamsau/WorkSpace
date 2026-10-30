@@ -175,12 +175,21 @@ All fields are optional. Missing or malformed config falls back to defaults and 
     "scrollSensitivity": 1.0,
     "doubleClickDistancePoints": 12
   },
+  "cursor": {
+    "returnToOriginalPositionAfterTouch": true
+  },
   "diagnostics": {
     "fileLogPath": "/Users/ajvwhite/Library/Logs/MacXeneonEdgeTouchDriver/driver.log",
     "fileLogMaxBytes": 5242880
   }
 }
 ```
+
+Set `cursor.returnToOriginalPositionAfterTouch` to `true` to borrow the cursor
+for the EDGE interaction and return it to the display and position where it was
+before the touch. Set it to `false` to leave the cursor at the final EDGE touch
+position. In both modes, the touch is mapped to the paired EDGE display before
+the synthetic click is posted.
 
 `gesture.multiTouchEnabled` is always forced to `false` as the hardware only exposes single touch information, if this ever changes we will look to see how to support multi-touch gestures.
 

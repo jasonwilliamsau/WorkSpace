@@ -22,30 +22,38 @@ public final class GestureController {
     private let inputSink: SyntheticInputSink
     private let cursorController: CursorController
     private let focusRestorer: FocusRestorer
+    private let interactionClassifier: GestureInteractionClassifying
     private let doubleClickIntervalProvider: () -> TimeInterval
+    private let menuSessionTimeoutMs: Int
     private var pendingHold: DispatchWorkItem?
     private var pendingMouseUp: DispatchWorkItem?
     private var pendingCursorReturn: DispatchWorkItem?
     private var pendingFocusRestore: DispatchWorkItem?
+    private var pendingMenuSessionTimeout: DispatchWorkItem?
     private var lastCompletedTouchTimestamp: DispatchTime?
     private var eligibleFirstTap: EligibleTap?
     private var hasCapturedFocus = false
+    private var menuSessionActive = false
 
     public init(
         mapperProvider: @escaping () -> CoordinateMapper?,
         inputSink: SyntheticInputSink,
         cursorController: CursorController,
         focusRestorer: FocusRestorer = NoOpFocusRestorer(),
+        interactionClassifier: GestureInteractionClassifying = ContentGestureInteractionClassifier(),
         timing: GestureTiming = .immediate,
         doubleClickIntervalProvider: @escaping () -> TimeInterval = { 0.5 },
+        menuSessionTimeoutMs: Int = 5_000,
         schedulingQueue: DispatchQueue? = nil
     ) {
         self.mapperProvider = mapperProvider
         self.inputSink = inputSink
         self.cursorController = cursorController
         self.focusRestorer = focusRestorer
+        self.interactionClassifier = interactionClassifier
         self.timing = timing
         self.doubleClickIntervalProvider = doubleClickIntervalProvider
+        self.menuSessionTimeoutMs = max(250, menuSessionTimeoutMs)
         self.schedulingQueue = schedulingQueue
     }
 
@@ -93,7 +101,12 @@ public final class GestureController {
 
         switch state {
         case .idle:
-            cursorController.forceShow()
+            if menuSessionActive {
+                menuSessionActive = false
+                cursorController.returnToOrigin()
+            } else {
+                cursorController.forceShow()
+            }
             finalizeCapturedFocus()
         case .singleTouch(let context):
             switch context.phase {
@@ -117,7 +130,19 @@ public final class GestureController {
     ) {
         guard continuesTapSequence || !isDebounced(event.timestamp) else { return }
 
-        if continuesTapSequence {
+        let mapper = mapperProvider()
+        let interactionKind = mapper.map {
+            interactionClassifier.classify(at: point, displayBounds: $0.displayBounds)
+        } ?? .content
+        let completesMenuSession = menuSessionActive
+        if completesMenuSession {
+            pendingMenuSessionTimeout?.cancel()
+            pendingMenuSessionTimeout = nil
+        }
+
+        if completesMenuSession {
+            resetDoubleClickSequence()
+        } else if continuesTapSequence {
             pendingFocusRestore?.cancel()
             pendingFocusRestore = nil
         } else {
@@ -132,6 +157,8 @@ public final class GestureController {
             lastRawX: event.rawX,
             lastRawY: event.rawY,
             phase: .pending,
+            interactionKind: interactionKind,
+            completesMenuSession: completesMenuSession,
             clickCount: 1
         ))
         scheduleHoldToDrag(contactID: event.contactID)
@@ -169,13 +196,21 @@ public final class GestureController {
             pendingHold = nil
             resetDoubleClickSequence()
             guard borrowCursor(at: context.startPoint) else { return }
-            updated.phase = .scrolling
-            state = .singleTouch(updated)
-            inputSink.postScroll(
-                deltaX: (point.x - context.startPoint.x) * timing.scrollSensitivity,
-                deltaY: (point.y - context.startPoint.y) * timing.scrollSensitivity,
-                phase: .began
-            )
+            if context.interactionKind == .windowChrome {
+                updated.phase = .dragging
+                state = .singleTouch(updated)
+                inputSink.postMouseDown(at: context.startPoint, clickCount: 1)
+                cursorController.updatePosition(point)
+                inputSink.postMouseDragged(to: point)
+            } else {
+                updated.phase = .scrolling
+                state = .singleTouch(updated)
+                inputSink.postScroll(
+                    deltaX: (point.x - context.startPoint.x) * timing.scrollSensitivity,
+                    deltaY: (point.y - context.startPoint.y) * timing.scrollSensitivity,
+                    phase: .began
+                )
+            }
         case .scrolling:
             state = .singleTouch(updated)
             inputSink.postScroll(
@@ -205,7 +240,9 @@ public final class GestureController {
         switch context.phase {
         case .pending:
             guard borrowCursor(at: context.startPoint) else { return }
-            let clickCount = clickCountForTap(at: context.startPoint, timestamp: event.timestamp)
+            let clickCount = context.interactionKind == .menu || context.completesMenuSession
+                ? 1
+                : clickCountForTap(at: context.startPoint, timestamp: event.timestamp)
             updated.phase = .finishingTap
             updated.lastPoint = context.startPoint
             updated.clickCount = clickCount
@@ -271,9 +308,23 @@ public final class GestureController {
             guard let self,
                   case .singleTouch(let context) = self.state,
                   context.contactID == contactID else { return }
-            self.cursorController.returnToOrigin()
             self.pendingCursorReturn = nil
+
+            if context.interactionKind == .menu && !context.completesMenuSession {
+                self.menuSessionActive = true
+                self.transitionToIdle()
+                self.scheduleMenuSessionTimeout()
+                return
+            }
+
+            self.cursorController.returnToOrigin()
             self.transitionToIdle()
+
+            if context.completesMenuSession {
+                self.menuSessionActive = false
+                self.finalizeTapSequenceFocus()
+                return
+            }
 
             if let completedTapClickCount {
                 if completedTapClickCount == 2 {
@@ -313,10 +364,12 @@ public final class GestureController {
         pendingMouseUp?.cancel()
         pendingCursorReturn?.cancel()
         pendingFocusRestore?.cancel()
+        pendingMenuSessionTimeout?.cancel()
         pendingHold = nil
         pendingMouseUp = nil
         pendingCursorReturn = nil
         pendingFocusRestore = nil
+        pendingMenuSessionTimeout = nil
     }
 
     @discardableResult
@@ -407,5 +460,16 @@ public final class GestureController {
         guard hasCapturedFocus else { return }
         hasCapturedFocus = false
         focusRestorer.restoreCapturedWindow()
+    }
+
+    private func scheduleMenuSessionTimeout() {
+        pendingMenuSessionTimeout?.cancel()
+        pendingMenuSessionTimeout = schedule(after: menuSessionTimeoutMs) { [weak self] in
+            guard let self, self.menuSessionActive, case .idle = self.state else { return }
+            self.pendingMenuSessionTimeout = nil
+            self.menuSessionActive = false
+            self.cursorController.returnToOrigin()
+            self.finalizeCapturedFocus()
+        }
     }
 }

@@ -140,6 +140,92 @@ final class GestureControllerTests: XCTestCase {
         )
     }
 
+    func testWindowChromeMovementStartsMouseDragWithoutHold() {
+        let input = RecordingInputSink()
+        let cursor = RecordingCursorController()
+        let classifier = FixedInteractionClassifier(.windowChrome)
+        let controller = makeController(
+            input: input,
+            cursor: cursor,
+            interactionClassifier: classifier
+        )
+
+        controller.handle(event(.down, rawX: 0, rawY: 0))
+        controller.handle(event(.move, rawX: 16_383, rawY: 9_599))
+        controller.handle(event(.up, rawX: 16_383, rawY: 9_599))
+
+        XCTAssertEqual(input.calls, [
+            .mouseDown(CGPoint(x: 100, y: 200)),
+            .mouseDragged(CGPoint(x: 2_660, y: 920)),
+            .mouseUp(CGPoint(x: 2_660, y: 920))
+        ])
+        XCTAssertEqual(cursor.calls, [
+            .borrow(CGPoint(x: 100, y: 200)),
+            .update(CGPoint(x: 2_660, y: 920)),
+            .returnToOrigin
+        ])
+    }
+
+    func testMenuTapKeepsCursorBorrowedUntilSelectionTap() {
+        let input = RecordingInputSink()
+        let cursor = RecordingCursorController()
+        let focus = RecordingFocusRestorer()
+        let classifier = FixedInteractionClassifier(.menu)
+        let controller = makeController(
+            input: input,
+            cursor: cursor,
+            focus: focus,
+            interactionClassifier: classifier
+        )
+
+        controller.handle(event(.down, rawX: 0, rawY: 0, timestampNanoseconds: 1_000_000_000))
+        controller.handle(event(.up, rawX: 0, rawY: 0, timestampNanoseconds: 1_050_000_000))
+
+        XCTAssertEqual(cursor.calls, [.borrow(CGPoint(x: 100, y: 200))])
+        XCTAssertEqual(focus.calls, [.captureFocusedWindow])
+        XCTAssertEqual(controller.state, .idle)
+
+        controller.handle(event(.down, rawX: 0, rawY: 0, timestampNanoseconds: 1_200_000_000))
+        controller.handle(event(.up, rawX: 0, rawY: 0, timestampNanoseconds: 1_250_000_000))
+
+        XCTAssertEqual(cursor.calls, [
+            .borrow(CGPoint(x: 100, y: 200)),
+            .borrow(CGPoint(x: 100, y: 200)),
+            .returnToOrigin
+        ])
+        XCTAssertEqual(focus.calls, [.captureFocusedWindow, .restoreCapturedWindow])
+        XCTAssertEqual(controller.state, .idle)
+    }
+
+    func testAbandonedMenuSessionReturnsCursorAfterTimeout() {
+        let queue = DispatchQueue(label: "MacXeneonEdgeTouchDriverTests.menu-timeout")
+        let input = RecordingInputSink()
+        let cursor = RecordingCursorController()
+        let focus = RecordingFocusRestorer()
+        let controller = makeController(
+            input: input,
+            cursor: cursor,
+            focus: focus,
+            interactionClassifier: FixedInteractionClassifier(.menu),
+            menuSessionTimeoutMs: 250,
+            schedulingQueue: queue
+        )
+        let timeoutSettled = expectation(description: "menu session timeout")
+
+        controller.handle(event(.down, rawX: 0, rawY: 0))
+        controller.handle(event(.up, rawX: 0, rawY: 0))
+        queue.asyncAfter(deadline: .now() + .milliseconds(350)) {
+            timeoutSettled.fulfill()
+        }
+
+        wait(for: [timeoutSettled], timeout: 1)
+        XCTAssertEqual(cursor.calls, [
+            .borrow(CGPoint(x: 100, y: 200)),
+            .returnToOrigin
+        ])
+        XCTAssertEqual(focus.calls, [.captureFocusedWindow, .restoreCapturedWindow])
+    }
+
     func testScrollBeginsWithCumulativeMovementPastThreshold() {
         let input = RecordingInputSink()
         let cursor = RecordingCursorController()
@@ -531,8 +617,10 @@ final class GestureControllerTests: XCTestCase {
         input: RecordingInputSink,
         cursor: RecordingCursorController,
         focus: FocusRestorer = NoOpFocusRestorer(),
+        interactionClassifier: GestureInteractionClassifying = ContentGestureInteractionClassifier(),
         timing: GestureTiming = .immediate,
         doubleClickIntervalProvider: @escaping () -> TimeInterval = { 0.5 },
+        menuSessionTimeoutMs: Int = 5_000,
         schedulingQueue: DispatchQueue? = nil
     ) -> GestureController {
         let mapper = CoordinateMapper(displayBounds: CGRect(x: 100, y: 200, width: 2_560, height: 720))
@@ -541,8 +629,10 @@ final class GestureControllerTests: XCTestCase {
             inputSink: input,
             cursorController: cursor,
             focusRestorer: focus,
+            interactionClassifier: interactionClassifier,
             timing: timing,
             doubleClickIntervalProvider: doubleClickIntervalProvider,
+            menuSessionTimeoutMs: menuSessionTimeoutMs,
             schedulingQueue: schedulingQueue
         )
     }
@@ -555,6 +645,18 @@ final class GestureControllerTests: XCTestCase {
     ) -> TouchEvent {
         let timestamp = timestampNanoseconds.map(DispatchTime.init(uptimeNanoseconds:)) ?? .now()
         return TouchEvent(kind: kind, contactID: 0, rawX: rawX, rawY: rawY, timestamp: timestamp)
+    }
+}
+
+private final class FixedInteractionClassifier: GestureInteractionClassifying {
+    private let kind: GestureInteractionKind
+
+    init(_ kind: GestureInteractionKind) {
+        self.kind = kind
+    }
+
+    func classify(at point: CGPoint, displayBounds: CGRect) -> GestureInteractionKind {
+        kind
     }
 }
 

@@ -78,6 +78,9 @@ if [ ! -f "$config_path" ]; then
     "scrollSensitivity": 1.0,
     "doubleClickDistancePoints": 12
   },
+  "cursor": {
+    "returnToOriginalPositionAfterTouch": true
+  },
   "diagnostics": {
     "fileLogPath": "${driver_log_path}",
     "fileLogMaxBytes": 5242880

@@ -114,6 +114,30 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertTrue(result.warnings.isEmpty)
     }
 
+    func testCursorCanRemainAtTouchPoint() throws {
+        let url = try writeConfig("""
+        {
+          "cursor": {
+            "returnToOriginalPositionAfterTouch": false
+          }
+        }
+        """)
+
+        let result = DriverConfiguration.load(from: url)
+
+        XCTAssertFalse(result.configuration.cursor.returnToOriginalPositionAfterTouch)
+        XCTAssertTrue(result.warnings.isEmpty)
+    }
+
+    func testCursorReturnsToOriginalPositionByDefault() throws {
+        let url = try writeConfig("{}")
+
+        let result = DriverConfiguration.load(from: url)
+
+        XCTAssertTrue(result.configuration.cursor.returnToOriginalPositionAfterTouch)
+        XCTAssertTrue(result.warnings.isEmpty)
+    }
+
     private func writeConfig(_ contents: String) throws -> URL {
         let directory = temporaryDirectory()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

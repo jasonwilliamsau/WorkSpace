@@ -14,6 +14,9 @@ public struct DriverConfiguration: Codable, Equatable {
     /// Gesture feature options.
     public var gesture: Gesture
 
+    /// Cursor behavior after a touch gesture completes.
+    public var cursor: Cursor
+
     /// Optional file logging configuration.
     public var diagnostics: Diagnostics
 
@@ -43,6 +46,9 @@ public struct DriverConfiguration: Codable, Equatable {
             movementThresholdPoints: 8,
             scrollSensitivity: 1,
             doubleClickDistancePoints: 12
+        ),
+        cursor: Cursor(
+            returnToOriginalPositionAfterTouch: true
         ),
         diagnostics: Diagnostics(
             fileLogPath: defaultLogURL().path,
@@ -170,6 +176,12 @@ public struct DriverConfiguration: Codable, Equatable {
             }
         }
 
+        if let cursor = partial.cursor {
+            if let value = cursor.returnToOriginalPositionAfterTouch {
+                configuration.cursor.returnToOriginalPositionAfterTouch = value
+            }
+        }
+
         if let diagnostics = partial.diagnostics {
             if let value = diagnostics.fileLogPath {
                 configuration.diagnostics.fileLogPath = value
@@ -230,6 +242,11 @@ public extension DriverConfiguration {
         public var doubleClickDistancePoints: Int
     }
 
+    /// Cursor cleanup behavior after routed touchscreen input.
+    struct Cursor: Codable, Equatable {
+        public var returnToOriginalPositionAfterTouch: Bool
+    }
+
     /// Diagnostic file logging configuration.
     struct Diagnostics: Codable, Equatable {
         public var fileLogPath: String?
@@ -257,6 +274,7 @@ private struct PartialConfiguration: Decodable {
     var timing: PartialTiming?
     var display: PartialDisplay?
     var gesture: PartialGesture?
+    var cursor: PartialCursor?
     var diagnostics: PartialDiagnostics?
 }
 
@@ -285,6 +303,10 @@ private struct PartialGesture: Decodable {
     var movementThresholdPoints: Int?
     var scrollSensitivity: Double?
     var doubleClickDistancePoints: Int?
+}
+
+private struct PartialCursor: Decodable {
+    var returnToOriginalPositionAfterTouch: Bool?
 }
 
 private struct PartialDiagnostics: Decodable {

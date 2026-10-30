@@ -14,6 +14,7 @@ public final class MacXeneonEdgeTouchDriverApplication {
     private let inputSink: SyntheticInputSink
     private let cursorController: CursorController
     private let focusRestorerProvider: () -> FocusRestorer
+    private let interactionClassifierProvider: () -> GestureInteractionClassifying
     private let requiredStablePairingTopologyObservations: Int
     private let pairingTopologyRetryDelay: DispatchTimeInterval
     private let automaticallyScheduleConfidence: Bool
@@ -73,8 +74,11 @@ public final class MacXeneonEdgeTouchDriverApplication {
             configuration: configuration,
             displayResolver: DisplayResolver(configuration: configuration.display),
             inputSink: CGEventInputSink(),
-            cursorController: CGCursorController(),
+            cursorController: CGCursorController(
+                returnToOriginalPositionAfterTouch: configuration.cursor.returnToOriginalPositionAfterTouch
+            ),
             focusRestorerProvider: { AXFocusRestorer() },
+            interactionClassifierProvider: { AXGestureInteractionClassifier() },
             pairingStore: PairingStore(),
             pairingOverlay: PairingOverlayController(),
             requiredStablePairingTopologyObservations: 2,
@@ -89,6 +93,9 @@ public final class MacXeneonEdgeTouchDriverApplication {
         inputSink: SyntheticInputSink,
         cursorController: CursorController,
         focusRestorerProvider: @escaping () -> FocusRestorer = { NoOpFocusRestorer() },
+        interactionClassifierProvider: @escaping () -> GestureInteractionClassifying = {
+            ContentGestureInteractionClassifier()
+        },
         pairingStore: PairingStore = PairingStore(),
         pairingOverlay: PairingOverlayPresenting = PairingOverlayController(),
         requiredStablePairingTopologyObservations: Int = 1,
@@ -101,6 +108,7 @@ public final class MacXeneonEdgeTouchDriverApplication {
         self.inputSink = inputSink
         self.cursorController = cursorController
         self.focusRestorerProvider = focusRestorerProvider
+        self.interactionClassifierProvider = interactionClassifierProvider
         self.pairingStore = pairingStore
         self.pairingOverlay = pairingOverlay
         self.requiredStablePairingTopologyObservations = max(
@@ -404,6 +412,7 @@ public final class MacXeneonEdgeTouchDriverApplication {
             inputSink: inputSink,
             cursorController: cursorController,
             focusRestorer: focusRestorerProvider(),
+            interactionClassifier: interactionClassifierProvider(),
             timing: GestureTiming(configuration: configuration.timing, gesture: configuration.gesture),
             doubleClickIntervalProvider: { NSEvent.doubleClickInterval },
             schedulingQueue: gestureQueue
