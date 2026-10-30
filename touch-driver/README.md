@@ -32,7 +32,7 @@ Last updated: **September 2, 2026**. This table distinguishes physically verifie
 
 ## Report Another Compatible Display
 
-If your display uses this controller, [open a compatibility report](https://github.com/mrnocreativity/xeneon-wch-touchscreen-driver-macos/issues/new?template=compatibility-report.yml). Reports of both working and non-working models help define the real compatibility boundary. Exact brand names and retail listing titles also help other owners find this project when the same hardware is sold under another name.
+If your display uses this controller, [open a compatibility report](https://github.com/jasonwilliamsau/WorkSpace/issues/new?template=compatibility-report.yml). Reports of both working and non-working models help define the real compatibility boundary. Exact brand names and retail listing titles also help other owners find this project when the same hardware is sold under another name.
 
 Please include:
 

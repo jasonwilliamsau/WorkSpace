@@ -50,11 +50,10 @@ that the user performed.
 ## Stable internal installation identity
 
 Generated files intentionally use the original reverse-domain identifier
-`com.ajvwhite.MacXeneonEdgeTouchDriver`, even in the
-`mrnocreativity/xeneon-wch-touchscreen-driver-macos` fork. This is the stable
-internal identity inherited from the original project. It keeps upgrades on
-the same LaunchAgent, executable location, configuration, logs, saved pairings,
-and macOS privacy identity.
+`com.ajvwhite.MacXeneonEdgeTouchDriver`, including in the WorkSpace monorepo.
+This is the stable internal identity inherited from the original project. It
+keeps upgrades on the same LaunchAgent, executable location, configuration,
+logs, saved pairings, and macOS privacy identity.
 
 The name does not represent a dependency, network service, extra application,
 or unexpected third-party installation. Replacing it with a fork-specific name

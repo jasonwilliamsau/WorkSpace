@@ -1,0 +1,84 @@
+name: WorkSpace bug report
+description: Report a reproducible dashboard, installation, touch-mapping, or gesture problem.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve WorkSpace. Remove controller serial numbers, USB location IDs, usernames, folder paths, and unrelated log content before submitting.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      multiple: true
+      options:
+        - Dashboard or Preferences
+        - Workspace, folder, or application configuration
+        - Application or terminal launch
+        - Installation or LaunchAgent startup
+        - macOS privacy permissions
+        - Touchscreen pairing
+        - Wrong display or coordinates
+        - Tap, double-click, scrolling, or hold-drag
+        - Focus restoration
+        - Sleep, reboot, reconnect, or rearrangement
+        - Controller storm handling
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: What happened?
+      description: Include which physical display was touched and which display or application reacted when relevant.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start with...
+        2. Tap...
+        3. Observe...
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Mac model, macOS version, and display model
+      placeholder: Mac mini, macOS 15.x, CORSAIR XENEON EDGE
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant sanitized log lines
+      description: Include only the short section surrounding the failure. Remove hardware identifiers, usernames, folder paths, and unrelated activity.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Required checks
+      options:
+        - label: I tested the latest release or current main branch.
+          required: true
+        - label: I removed private machine identifiers, usernames, and personal folder paths.
+          required: true
