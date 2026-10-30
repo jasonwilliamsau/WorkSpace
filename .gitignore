@@ -1,0 +1,30 @@
+# SwiftPM and Xcode build products
+**/.build/
+**/.swiftpm/
+**/DerivedData/
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+*.xcuserstate
+
+# macOS and editors
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/
+
+# Local runtime data and diagnostics
+*.log
+*.trace
+*.env
+*.local.json
+artifacts/
+diagnostics/
+hid-captures/
+
+# One-time recoverable repository migration backup
+.migration-backups/
+
+# Unused local design prototypes
+assets/
+websites/

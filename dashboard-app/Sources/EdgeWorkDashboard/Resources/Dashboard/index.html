@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
+  <title>EDGE Work Dashboard</title>
+</head>
+<body>
+  <main class="shell">
+    <nav class="rail" aria-label="Dashboard workspaces">
+      <div class="brand"><span class="brand-mark"></span><span>EDGE</span></div>
+      <div class="workspace-list" id="workspace-nav"></div>
+    </nav>
+
+    <section class="canvas">
+      <header>
+        <div>
+          <p class="eyebrow" id="workspace-heading">WORKSPACE</p>
+          <h1 id="dashboard-title">Work command centre</h1>
+        </div>
+        <div class="clock" id="clock">--:--</div>
+      </header>
+
+      <section class="grid" id="workspace-content">
+        <article class="card hero">
+          <div class="card-heading"><div><p class="eyebrow">FOLDERS</p><h2>Workspace folders</h2></div><div class="folder-summary"><span class="pill" id="folder-count">0 FOLDERS</span><button class="add-folder-button" data-action="folders.add" aria-label="Add folders">＋</button></div></div>
+          <div class="project-list" id="folder-list">
+            <div class="workspace-empty">
+              <strong>No folders in this workspace</strong>
+              <small>Add one or more project folders to get started.</small>
+              <button class="primary-action" data-action="folders.add">Add Folders</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="card metric"><p class="eyebrow">SYSTEM LOAD</p><strong id="cpu-value">—</strong><div class="meter"><i id="cpu-meter" style="width:0"></i></div><small id="cpu-detail">Sampling CPU…</small></article>
+        <article class="card metric"><p class="eyebrow">MEMORY</p><strong id="memory-value">—</strong><div class="meter cyan"><i id="memory-meter" style="width:0"></i></div><small id="memory-detail">Reading memory…</small></article>
+        <article class="card action-card"><p class="eyebrow">FOLDER ACTIONS</p><h2>Open where you work</h2><p>Tap a folder to choose an editor, Finder, or a terminal opened at that exact folder.</p><button class="primary-action" data-action="preferences.show">Configure Applications</button></article>
+        <article class="card activity"><p class="eyebrow">SYSTEM STATUS</p><h2 id="uptime">Starting…</h2><p><span id="editor-name">Editor</span> is the default folder application.</p></article>
+      </section>
+
+    </section>
+
+    <footer class="status-strip">
+      <button class="driver-status" data-action="status.refresh"><span class="status-dot" id="driver-dot"></span><span><strong id="driver-state">Touch driver</strong><small id="driver-message">Checking status…</small></span></button>
+      <div class="status-item"><small>DISPLAY</small><strong id="display-message">XENEON EDGE · 2560×720</strong></div>
+      <div class="status-item"><small>TERMINAL</small><strong id="terminal-name">Terminal</strong></div>
+      <button class="controls-button" id="controls-open"><small>APP</small><strong>Controls</strong></button>
+      <div class="status-spacer"></div>
+      <div class="status-item right"><small>LOCAL</small><strong id="date">—</strong></div>
+    </footer>
+  </main>
+  <div class="controls-backdrop" id="controls-backdrop" hidden>
+    <section class="controls-panel" role="dialog" aria-modal="true" aria-labelledby="controls-title">
+      <div class="controls-heading">
+        <div><p class="eyebrow">EDGE WORK DASHBOARD</p><h2 id="controls-title">App controls</h2></div>
+        <button class="close-button" id="controls-close" aria-label="Close controls">Close</button>
+      </div>
+      <div class="control-actions">
+        <button class="control-action" data-action="preferences.show"><span>Preferences</span><small>Configure displays, apps, terminals, and workspaces</small></button>
+        <button class="control-action" data-action="status.refresh"><span>Refresh status</span><small>Recheck the touch driver now</small></button>
+        <button class="control-action danger" id="quit-arm"><span>Quit dashboard</span><small>Stop the app and close the EDGE window</small></button>
+        <button class="control-action confirm" id="quit-confirm" data-action="app.quit" hidden><span>Tap again to confirm quit</span><small>The dashboard can be reopened from Applications</small></button>
+      </div>
+    </section>
+  </div>
+  <div class="controls-backdrop" id="folder-actions-backdrop" hidden>
+    <section class="controls-panel folder-actions-panel" role="dialog" aria-modal="true" aria-labelledby="folder-actions-title">
+      <div class="controls-heading">
+        <div><p class="eyebrow">OPEN FOLDER</p><h2 id="folder-actions-title">Folder</h2></div>
+        <button class="close-button" id="folder-actions-close" aria-label="Close folder actions">Close</button>
+      </div>
+      <div class="control-actions" id="folder-actions-list"></div>
+    </section>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>
