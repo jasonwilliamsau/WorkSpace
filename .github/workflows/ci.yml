@@ -20,7 +20,5 @@ jobs:
           - touch-driver
     steps:
       - uses: actions/checkout@v4
-      - name: Select Xcode
-        run: sudo xcode-select --switch /Applications/Xcode_16.2.app
       - name: Test ${{ matrix.package }}
         run: swift test --package-path "${{ matrix.package }}" -Xswiftc -warnings-as-errors
